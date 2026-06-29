@@ -52,7 +52,7 @@ members = [
     "testing/test_utils",
 ]
 resolver = "2"
-exclude = ["book/cli"]
+exclude = ["book/cli", "vendor/leanSig"]
 
 [workspace.package]
 authors = ["https://github.com/ReamLabs/ream/graphs/contributors"]
@@ -104,7 +104,7 @@ kzg = { git = "https://github.com/grandinetech/rust-kzg" }
 lazy_static = "1.5.0"
 lean-multisig = { git = "https://github.com/leanEthereum/leanVM.git", rev = "2498896ca4d32a545a98a1b1cf1ca78f7f13f553" }
 lean-multisig-type2 = { package = "lean-multisig", git = "https://github.com/leanEthereum/leanMultisig.git", rev = "b00d6ba3dc574f915dc40a1796d95972178ac420" }
-leansig = { git = "https://github.com/leanEthereum//leanSig.git", branch = "devnet4" }
+leansig = { git = "https://github.com/leanEthereum/leanSig.git", branch = "devnet4" }
 libp2p = { version = "0.56", default-features = false, features = ["identify", "yamux", "noise", "dns", "serde", "tcp", "tokio", "plaintext", "secp256k1", "macros", "ecdsa", "metrics", "quic", "upnp", "gossipsub", "ping"] }
 libp2p-identity = "0.2.12"
 libp2p-mplex = "0.43.1"
@@ -187,8 +187,13 @@ ream-validator-lean = { path = "crates/common/validator/lean", default-features 
 [patch.crates-io]
 ethereum_hashing = { git = "https://github.com/ReamLabs/ethereum_hashing.git", rev = "c14a9ad96436e6b8b631faf49a3666e4558b71ae" }
 
+# Upstream ream unifies all `leansig` references (its own + leanVM/leanMultisig's transitive
+# `leansig_wrapper`) onto devnet4 via this `[patch]`. That patch relied on a double-slash URL so
+# cargo would accept it as a "different source"; GitHub no longer serves the double-slash path,
+# breaking a clean build. We instead redirect to a local checkout of leanSig@devnet4 (git->path
+# is always a distinct source to cargo), unifying every leansig reference on one version.
 [patch."https://github.com/leanEthereum/leanSig"]
-leansig = { git = "https://github.com/leanEthereum//leanSig.git", branch = "devnet4" }
+leansig = { path = "vendor/leanSig" }
 
 [profile.test]
 inherits = "release"

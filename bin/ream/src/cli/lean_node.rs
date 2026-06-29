@@ -1,5 +1,6 @@
 use std::{net::IpAddr, path::PathBuf};
 
+use alloy_primitives::Address;
 use clap::{Parser, error::ErrorKind};
 use ream_network_spec::{cli::lean_network_parser, networks::LeanNetworkSpec};
 use ream_p2p::bootnodes::Bootnodes;
@@ -92,6 +93,24 @@ pub struct LeanNodeConfig {
         help = "Number of attestation committees (subnets). Each validator's subnet is `validator_id % count`."
     )]
     pub attestation_committee_count: u64,
+
+    #[arg(
+        long,
+        help = "Execution layer Engine API endpoint (e.g. http://127.0.0.1:8551). When set together with --execution-jwt-secret, the lean node drives this EL via the standard Engine API."
+    )]
+    pub execution_endpoint: Option<Url>,
+
+    #[arg(
+        long,
+        help = "Path to the hex-encoded JWT secret shared with the execution client's Engine API."
+    )]
+    pub execution_jwt_secret: Option<PathBuf>,
+
+    #[arg(
+        long,
+        help = "Suggested fee recipient (20-byte hex address) for execution payloads built on the EL."
+    )]
+    pub execution_fee_recipient: Option<Address>,
 }
 
 impl LeanNodeConfig {

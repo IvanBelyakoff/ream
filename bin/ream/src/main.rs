@@ -107,6 +107,8 @@ use tokio::{
 use tracing::{Instrument, error, info};
 use tracing_subscriber::EnvFilter;
 
+mod lean_execution;
+
 pub const APP_NAME: &str = "ream";
 const DEFAULT_QUIET_LOG_TARGETS: &str = "libp2p_gossipsub::behaviour=error";
 
@@ -425,6 +427,27 @@ pub async fn run_lean_node(config: LeanNodeConfig, executor: ReamExecutor, ream_
 
     let validator_service = LeanValidatorService::new(keystores, chain_sender).await;
 
+    // Optional: drive an execution client (e.g. reth) via the standard Engine API, from the
+    // real lean consensus. Enabled when both --execution-endpoint and --execution-jwt-secret
+    // are provided. Read config fields here, before `config` is moved into the network task.
+    let lean_execution_service = match (
+        config.execution_endpoint.clone(),
+        config.execution_jwt_secret.clone(),
+    ) {
+        (Some(endpoint), Some(jwt_path)) => {
+            let engine = ExecutionEngine::new(endpoint, jwt_path)
+                .expect("Failed to create execution engine for lean node");
+            let fee_recipient = config.execution_fee_recipient.unwrap_or_default();
+            info!("Lean execution enabled: driving execution client via the standard Engine API");
+            Some(lean_execution::LeanExecutionService::new(
+                engine,
+                lean_chain_reader.clone(),
+                fee_recipient,
+            ))
+        }
+        _ => None,
+    };
+
     let server_config = RpcServerConfig::new(
         config.http_address,
         config.http_port,
@@ -456,6 +479,10 @@ pub async fn run_lean_node(config: LeanNodeConfig, executor: ReamExecutor, ream_
         ),
     );
 
+    let mut execution_task = lean_execution_service.map(|service| {
+        AbortOnDrop(executor.spawn(async move { service.start().await }.in_current_span()))
+    });
+
     executor.spawn(async move {
         countdown_for_genesis().await;
     });
@@ -472,6 +499,14 @@ pub async fn run_lean_node(config: LeanNodeConfig, executor: ReamExecutor, ream_
         },
         result = &mut http_task.0 => {
             error!("RPC service has stopped unexpectedly: {result:?}");
+        },
+        result = async {
+            match execution_task.as_mut() {
+                Some(task) => (&mut task.0).await,
+                None => std::future::pending().await,
+            }
+        } => {
+            error!("Lean execution service has stopped unexpectedly: {result:?}");
         }
     }
 }

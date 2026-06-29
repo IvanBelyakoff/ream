@@ -3926,7 +3926,6 @@ dependencies = [
 [[package]]
 name = "leansig"
 version = "0.1.0"
-source = "git+https://github.com/leanEthereum//leanSig.git?branch=devnet4#15cbdd43ec8525aa43fea2f42cafc5ed366084ae"
 dependencies = [
  "dashmap",
  "ethereum_ssz",
@@ -6031,6 +6030,7 @@ name = "ream"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
+ "alloy-rpc-types-eth",
  "anyhow",
  "bip39",
  "clap",
@@ -6055,6 +6055,7 @@ dependencies = [
  "ream-discv5",
  "ream-events-beacon",
  "ream-execution-engine",
+ "ream-execution-rpc-types",
  "ream-executor",
  "ream-fork-choice-beacon",
  "ream-fork-choice-lean",
